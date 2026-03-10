@@ -1,7 +1,7 @@
 numpy
 newspaper3k
 trafilatura
-torch
+torch --index-url https://download.pytorch.org/whl/cpu
 transformers
 sentence-transformers
 scikit-learn
