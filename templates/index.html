@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FactCheck AI — News Verification System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Playfair+Display:wght@700;900&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='/looks.css') }}">
+</head>
+<body>
+
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-noise" aria-hidden="true"></div>
+
+    <!-- ════════════════════════════════════════
+         API KEY MODAL  (Task 1 — two sections)
+         ════════════════════════════════════════ -->
+    <div class="modal-overlay" id="api-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-card">
+
+            <!-- Close / skip -->
+            <button class="modal-close" id="modal-skip" aria-label="Skip for now">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+
+            <!-- Header -->
+            <div class="modal-header">
+                <span class="modal-icon">&#128273;</span>
+                <div>
+                    <h2 class="modal-title" id="modal-title">Configure API Keys</h2>
+                    <p class="modal-subtitle">Connect your Search and LLM APIs to enable verification</p>
+                </div>
+            </div>
+
+            <div class="modal-divider"></div>
+
+            <!-- ── SECTION 1: Search API ── -->
+            <div class="modal-section">
+                <div class="modal-section-head">
+                    <span class="modal-section-label">Search API</span>
+                    <span class="modal-badge modal-badge--required">Required</span>
+                </div>
+                <p class="modal-desc">
+                    Used to retrieve live sources for claim verification.
+                    Recommended: <a href="https://serper.dev" target="_blank" rel="noopener" class="modal-link">serper.dev</a> (free tier available).
+                </p>
+
+                <!-- Provider selector buttons -->
+                <div class="provider-row" id="search-provider-row">
+                    <button type="button" class="provider-btn active" data-provider="serper.dev">
+                        serper.dev<span class="rec-tag">Recommended</span>
+                    </button>
+                    <button type="button" class="provider-btn" data-provider="gnews">gnews</button>
+                    <button type="button" class="provider-btn" data-provider="publicapi.dev">publicapi.dev</button>
+                </div>
+
+                <!-- Key input -->
+                <div class="modal-input-wrap">
+                    <input
+                        type="password"
+                        id="search-key-input"
+                        class="modal-input"
+                        placeholder="Enter your Search API key&#8230;"
+                        autocomplete="off"
+                        spellcheck="false"
+                    />
+                    <button class="modal-eye" id="toggle-search-vis" aria-label="Toggle key visibility" type="button">
+                        <svg id="search-eye-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-status" id="search-modal-status" aria-live="polite"></div>
+            </div>
+
+            <div class="modal-divider"></div>
+
+            <!-- ── SECTION 2: LLM API ── -->
+            <div class="modal-section">
+                <div class="modal-section-head">
+                    <span class="modal-section-label">LLM API</span>
+                    <span class="modal-badge modal-badge--indimodel">Required</span>
+                </div>
+                <p class="modal-desc">
+                    Powers IndiModel's analysis and trust-scoring.
+                    Recommended: <a href="https://console.groq.com" target="_blank" rel="noopener" class="modal-link">groq</a> (fast inference, free tier).
+                </p>
+
+                <!-- Provider selector buttons -->
+                <div class="provider-row" id="llm-provider-row">
+                    <button type="button" class="provider-btn active" data-provider="groq">
+                        groq<span class="rec-tag">Recommended</span>
+                    </button>
+                    <button type="button" class="provider-btn" data-provider="anthropic">anthropic</button>
+                    <button type="button" class="provider-btn" data-provider="openai">openai</button>
+                    <button type="button" class="provider-btn" data-provider="google">google</button>
+                </div>
+
+                <!-- Key input -->
+                <div class="modal-input-wrap">
+                    <input
+                        type="password"
+                        id="llm-key-input"
+                        class="modal-input"
+                        placeholder="Enter your LLM API key&#8230;"
+                        autocomplete="off"
+                        spellcheck="false"
+                    />
+                    <button class="modal-eye" id="toggle-llm-vis" aria-label="Toggle key visibility" type="button">
+                        <svg id="llm-eye-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-status" id="llm-modal-status" aria-live="polite"></div>
+            </div>
+
+            <!-- Privacy note -->
+            <div class="modal-privacy">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span>All keys stored in session memory only — cleared when you close or refresh this page</span>
+            </div>
+
+            <!-- Actions -->
+            <div class="modal-actions">
+                <button class="modal-btn-skip" id="modal-skip-2">Skip for now</button>
+                <button class="modal-btn-submit" id="modal-submit" type="button">
+                    <span id="submit-label">Validate &amp; Connect</span>
+                    <div class="modal-spinner" id="modal-spinner" aria-hidden="true">
+                        <span></span><span></span><span></span>
+                    </div>
+                </button>
+            </div>
+
+        </div>
+    </div>
+    <!-- ════ END MODAL ════ -->
+
+    <!-- Task 3 — Mobile sidebar backdrop overlay -->
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="app-wrapper">
+
+        <!-- ── Sidebar ── -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <span class="brand-mark">&#11041;</span>
+                <span class="brand-name">FactCheck<em>AI</em></span>
+            </div>
+
+            <div class="sidebar-info">
+                <p class="sidebar-desc">Submit a claim or paste an article URL. The AI will analyze the content and tell you whether you should trust it.</p>
+            </div>
+
+            <div class="sidebar-tips">
+                <span class="tips-label">How it works</span>
+                <div class="tip-item">
+                    <span class="tip-icon">&#128269;</span>
+                    <span>Use <strong>query</strong> for claims, headlines, or facts you want verified</span>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-icon">&#128279;</span>
+                    <span>Use <strong>Article</strong> and paste a URL to analyze a full news article</span>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-icon">&#9989;</span>
+                    <span>Get a trust verdict with reasoning and source context</span>
+                </div>
+            </div>
+
+            <div class="sidebar-status">
+                <span class="status-dot" id="api-status-dot"></span>
+                <span class="status-text" id="api-status-text">Awaiting API Key</span>
+            </div>
+
+            <a class="sidebar-link" href="https://github.com/vishwjeet71" target="_blank" rel="noopener noreferrer">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+                Documentation
+            </a>
+        </aside>
+
+        <!-- ── Main chat ── -->
+        <main class="chat-area">
+
+            <header class="chat-header">
+                <div class="header-left">
+                    <!-- Task 3: clicking title on mobile opens sidebar -->
+                    <h1 class="header-title" id="header-title">News Verification</h1>
+                    <!-- Task 2: model dropdown replaces session ID -->
+                    <div class="model-selector">
+                        <span class="model-selector-label">Model</span>
+                        <select id="model-select" class="model-select" aria-label="Select model">
+                            <option value="prototype">Prototype</option>
+                            <option value="indimodel">IndiModel</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="clear-btn" id="clear-chat" title="Clear conversation">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                    Clear
+                </button>
+            </header>
+
+            <div class="messages-container" id="chat-messages" role="log" aria-live="polite">
+                <div class="message bot-message intro-message">
+                    <div class="message-meta">
+                        <span class="msg-sender">FactCheck AI</span>
+                        <span class="msg-time" data-time="now"></span>
+                    </div>
+                    <div class="message-body">
+                        <p>Welcome. Use the <strong>query / Article</strong> toggle in the input box below to choose your mode, then submit your content. I'll analyze it and give you a clear trust verdict.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Input Footer ── -->
+            <footer class="input-area">
+                <form id="chat-form" class="input-form" autocomplete="off">
+
+                    <div class="mode-pill">
+                        <button type="button" class="pill-btn active" id="btn-query">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                            query
+                        </button>
+                        <button type="button" class="pill-btn" id="btn-article">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            Article
+                        </button>
+                    </div>
+
+                    <div class="input-divider" aria-hidden="true"></div>
+
+                    <div class="textarea-wrap">
+                        <textarea
+                            id="user-input"
+                            placeholder="Enter a claim or headline to verify..."
+                            rows="1"
+                            aria-label="Message input"
+                            required
+                        ></textarea>
+                    </div>
+
+                    <button type="submit" id="send-btn" aria-label="Send">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="17" height="17">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        </svg>
+                    </button>
+                </form>
+                <p class="input-hint"><kbd>Enter</kbd> to send &nbsp;&middot;&nbsp; <kbd>Shift+Enter</kbd> for new line</p>
+            </footer>
+
+        </main>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // ══════════════════════════════════════════
+        //  STATE  (all session memory — clears on refresh)
+        // ══════════════════════════════════════════
+        let searchApiKey      = null;
+        let searchApiProvider = 'serper.dev';
+        let llmApiKey         = null;
+        let llmApiProvider    = 'groq';
+
+        // ══════════════════════════════════════════
+        //  DOM REFS
+        // ══════════════════════════════════════════
+        const apiModal          = document.getElementById('api-modal');
+        const modalSubmit       = document.getElementById('modal-submit');
+        const modalSkip         = document.getElementById('modal-skip');
+        const modalSkip2        = document.getElementById('modal-skip-2');
+        const modalSpinner      = document.getElementById('modal-spinner');
+        const submitLabel       = document.getElementById('submit-label');
+
+        const searchKeyInput    = document.getElementById('search-key-input');
+        const llmKeyInput       = document.getElementById('llm-key-input');
+        const searchModalStatus = document.getElementById('search-modal-status');
+        const llmModalStatus    = document.getElementById('llm-modal-status');
+        const toggleSearchVis   = document.getElementById('toggle-search-vis');
+        const toggleLLMVis      = document.getElementById('toggle-llm-vis');
+        const searchEyeIcon     = document.getElementById('search-eye-icon');
+        const llmEyeIcon        = document.getElementById('llm-eye-icon');
+
+        const apiStatusDot      = document.getElementById('api-status-dot');
+        const apiStatusText     = document.getElementById('api-status-text');
+
+        const chatMessages      = document.getElementById('chat-messages');
+        const chatForm          = document.getElementById('chat-form');
+        const userInput         = document.getElementById('user-input');
+        const btnquery          = document.getElementById('btn-query');
+        const btnArticle        = document.getElementById('btn-article');
+        const clearBtn          = document.getElementById('clear-chat');
+        const modelSelect       = document.getElementById('model-select');
+
+        // Task 3
+        const sidebar           = document.getElementById('sidebar');
+        const sidebarBackdrop   = document.getElementById('sidebar-backdrop');
+        const headerTitle       = document.getElementById('header-title');
+
+        // ── Init ──
+        document.querySelectorAll('[data-time="now"]').forEach(el => el.textContent = getTime());
+
+        // ══════════════════════════════════════════
+        //  TASK 3 — MOBILE SIDEBAR TOGGLE
+        // ══════════════════════════════════════════
+        function isMobile() { return window.innerWidth <= 700; }
+
+        function openSidebar() {
+            sidebar.classList.add('mobile-open');
+            sidebarBackdrop.classList.add('active');
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('mobile-open');
+            sidebarBackdrop.classList.remove('active');
+        }
+
+        headerTitle.addEventListener('click', () => {
+            if (!isMobile()) return;
+            sidebar.classList.contains('mobile-open') ? closeSidebar() : openSidebar();
+        });
+
+        sidebarBackdrop.addEventListener('click', closeSidebar);
+
+        window.addEventListener('resize', () => {
+            if (!isMobile()) closeSidebar();
+        });
+
+        // ══════════════════════════════════════════
+        //  MODAL — Open / Close
+        // ══════════════════════════════════════════
+        function openModal() {
+            apiModal.classList.remove('hidden');
+            requestAnimationFrame(() => apiModal.classList.add('visible'));
+            searchKeyInput.focus();
+            clearAllModalStatus();
+        }
+
+        function closeModal() {
+            apiModal.classList.remove('visible');
+            setTimeout(() => apiModal.classList.add('hidden'), 250);
+        }
+
+        openModal();
+
+        modalSkip.addEventListener('click',  handleSkip);
+        modalSkip2.addEventListener('click', handleSkip);
+
+        function handleSkip() {
+            searchApiKey = null;
+            llmApiKey    = null;
+            updateSidebarStatus(false, false);
+            closeModal();
+        }
+
+        apiModal.addEventListener('click', (e) => {
+            if (e.target === apiModal) handleSkip();
+        });
+
+        // ══════════════════════════════════════════
+        //  TASK 1 — PROVIDER BUTTONS
+        // ══════════════════════════════════════════
+        document.querySelectorAll('#search-provider-row .provider-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#search-provider-row .provider-btn')
+                    .forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                searchApiProvider = btn.dataset.provider;
+                clearSectionStatus('search');
+            });
+        });
+
+        document.querySelectorAll('#llm-provider-row .provider-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#llm-provider-row .provider-btn')
+                    .forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                llmApiProvider = btn.dataset.provider;
+                clearSectionStatus('llm');
+            });
+        });
+
+        // ── Eye icon toggles ──
+        toggleSearchVis.addEventListener('click', () => toggleEye(searchKeyInput, searchEyeIcon));
+        toggleLLMVis.addEventListener('click',    () => toggleEye(llmKeyInput,    llmEyeIcon));
+
+        function toggleEye(input, icon) {
+            const isPass  = input.type === 'password';
+            input.type    = isPass ? 'text' : 'password';
+            icon.innerHTML = isPass
+                ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+                : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+        }
+
+        // ══════════════════════════════════════════
+        //  TASK 1 — VALIDATE & SAVE
+        // ══════════════════════════════════════════
+        modalSubmit.addEventListener('click', validateAndSave);
+        searchKeyInput.addEventListener('keydown', e => { if (e.key === 'Enter') validateAndSave(); });
+        llmKeyInput.addEventListener('keydown',    e => { if (e.key === 'Enter') validateAndSave(); });
+
+        async function validateAndSave() {
+            const sKey = searchKeyInput.value.trim();
+            const lKey = llmKeyInput.value.trim();
+
+            if (!sKey) {
+                setSectionStatus('search', 'error', '&#9888;&#65039; Please enter a Search API key.');
+                return;
+            }
+            if (sKey.length < 20) {
+                setSectionStatus('search', 'error', '&#9888;&#65039; That key looks too short — check it and try again.');
+                return;
+            }
+            if (lKey && lKey.length < 20) {
+                setSectionStatus('llm', 'error', '&#9888;&#65039; That LLM key looks too short — check it and try again.');
+                return;
+            }
+
+            setLoading(true);
+            clearAllModalStatus();
+
+            const searchOk = await validateSearchKey(sKey, searchApiProvider);
+            if (!searchOk) { setLoading(false); return; }
+
+            if (lKey) {
+                const llmOk = await validateLLMKey(lKey, llmApiProvider);
+                if (!llmOk) { setLoading(false); return; }
+            }
+
+            setLoading(false);
+            updateSidebarStatus(true, !!llmApiKey);
+            setTimeout(() => closeModal(), 900);
+        }
+
+        async function validateSearchKey(key, provider) {
+            try {
+                let res;
+                if (provider === 'serper.dev') {
+                    res = await fetch('https://google.serper.dev/search', {
+                        method:  'POST',
+                        headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({ q: 'test', num: 1 })
+                    });
+                } else if (provider === 'gnews') {
+                    res = await fetch(
+                        'https://gnews.io/api/v4/top-headlines?token=' + encodeURIComponent(key) + '&max=1&lang=en'
+                    );
+                } else if (provider === 'publicapi.dev') {
+                    // No CORS-friendly validation endpoint available — accept on format
+                    searchApiKey = key;
+                    setSectionStatus('search', 'success', '&#9989; Key saved for publicapi.dev.');
+                    return true;
+                }
+
+                if (res.ok) {
+                    searchApiKey = key;
+                    setSectionStatus('search', 'success', '&#9989; Search API key validated.');
+                    return true;
+                } else if (res.status === 401 || res.status === 403) {
+                    setSectionStatus('search', 'error', '&#10060; Invalid key — access denied. Double-check and retry.');
+                    return false;
+                } else if (res.status === 429) {
+                    setSectionStatus('search', 'error', '&#9888;&#65039; Rate limit hit on this key. Wait a moment then retry.');
+                    return false;
+                } else {
+                    setSectionStatus('search', 'error', '&#10060; Unexpected error (HTTP ' + res.status + ').');
+                    return false;
+                }
+            } catch (err) {
+                // CORS or network — save key, tested on first chat request
+                searchApiKey = key;
+                setSectionStatus('search', 'success', '&#9989; Key saved. Remote validation blocked by browser security — will be tested on first request.');
+                return true;
+            }
+        }
+
+        async function validateLLMKey(key, provider) {
+            try {
+                let res;
+                if (provider === 'groq') {
+                    res = await fetch('https://api.groq.com/openai/v1/models', {
+                        headers: { 'Authorization': 'Bearer ' + key }
+                    });
+                } else if (provider === 'openai') {
+                    res = await fetch('https://api.openai.com/v1/models', {
+                        headers: { 'Authorization': 'Bearer ' + key }
+                    });
+                } else if (provider === 'anthropic') {
+                    if (!key.startsWith('sk-ant-')) {
+                        setSectionStatus('llm', 'error', '&#9888;&#65039; Anthropic keys must start with "sk-ant-". Check your key.');
+                        return false;
+                    }
+                    llmApiKey = key;
+                    setSectionStatus('llm', 'success', '&#9989; Anthropic key format valid and saved.');
+                    return true;
+                } else if (provider === 'google') {
+                    if (!key.startsWith('AIza')) {
+                        setSectionStatus('llm', 'error', '&#9888;&#65039; Google API keys must start with "AIza". Check your key.');
+                        return false;
+                    }
+                    llmApiKey = key;
+                    setSectionStatus('llm', 'success', '&#9989; Google key format valid and saved.');
+                    return true;
+                }
+
+                if (res.ok) {
+                    llmApiKey = key;
+                    setSectionStatus('llm', 'success', '&#9989; LLM API key validated.');
+                    return true;
+                } else if (res.status === 401 || res.status === 403) {
+                    setSectionStatus('llm', 'error', '&#10060; Invalid LLM key — access denied. Double-check and retry.');
+                    return false;
+                } else {
+                    setSectionStatus('llm', 'error', '&#10060; Unexpected error (HTTP ' + res.status + ').');
+                    return false;
+                }
+            } catch (err) {
+                llmApiKey = key;
+                setSectionStatus('llm', 'success', '&#9989; Key saved. Remote validation blocked by browser security — will be tested on first request.');
+                return true;
+            }
+        }
+
+        function setLoading(on) {
+            modalSpinner.style.display = on ? 'flex' : 'none';
+            submitLabel.style.display  = on ? 'none' : 'inline';
+            modalSubmit.disabled       = on;
+            searchKeyInput.disabled    = on;
+            llmKeyInput.disabled       = on;
+        }
+
+        function setSectionStatus(section, type, msg) {
+            const el       = section === 'search' ? searchModalStatus : llmModalStatus;
+            el.innerHTML   = msg;
+            el.className   = 'modal-status modal-status--' + type + ' modal-status--visible';
+        }
+
+        function clearSectionStatus(section) {
+            const el     = section === 'search' ? searchModalStatus : llmModalStatus;
+            el.innerHTML = '';
+            el.className = 'modal-status';
+        }
+
+        function clearAllModalStatus() {
+            clearSectionStatus('search');
+            clearSectionStatus('llm');
+        }
+
+        function updateSidebarStatus(searchConnected, llmConnected) {
+            if (searchConnected && llmConnected) {
+                apiStatusDot.style.background = 'var(--green)';
+                apiStatusDot.style.boxShadow  = '0 0 8px var(--green)';
+                apiStatusText.textContent     = 'Search + LLM Connected';
+            } else if (searchConnected) {
+                apiStatusDot.style.background = 'var(--green)';
+                apiStatusDot.style.boxShadow  = '0 0 8px var(--green)';
+                apiStatusText.textContent     = 'Search Connected';
+            } else {
+                apiStatusDot.style.background = 'var(--red)';
+                apiStatusDot.style.boxShadow  = '0 0 8px var(--red)';
+                apiStatusText.textContent     = 'No API Key';
+            }
+        }
+
+        // ══════════════════════════════════════════
+        //  TASK 2 — MODEL SELECTOR
+        // ══════════════════════════════════════════
+        modelSelect.addEventListener('change', () => {
+            if (modelSelect.value === 'indimodel' && (!searchApiKey || !llmApiKey)) {
+                clearAllModalStatus();
+                openModal();
+            }
+        });
+
+        // ══════════════════════════════════════════
+        //  MODE TOGGLE  (query / Article)
+        // ══════════════════════════════════════════
+        let inputType = 'query';
+
+        function setMode(type) {
+            inputType = type;
+            const isquery = type === 'query';
+            btnquery.classList.toggle('active', isquery);
+            btnArticle.classList.toggle('active', !isquery);
+            userInput.placeholder = isquery
+                ? 'Enter a claim or headline to verify...'
+                : 'Paste an article URL here...';
+            userInput.focus();
+        }
+
+        btnquery.addEventListener('click',   () => setMode('query'));
+        btnArticle.addEventListener('click', () => setMode('article_link'));
+
+        clearBtn.addEventListener('click', () => {
+            chatMessages.querySelectorAll('.message:not(.intro-message)').forEach(m => {
+                m.classList.add('fade-out');
+                setTimeout(() => m.remove(), 280);
+            });
+        });
+
+        // ══════════════════════════════════════════
+        //  FORM SUBMIT
+        // ══════════════════════════════════════════
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text  = userInput.value.trim();
+            if (!text) return;
+
+            const model = modelSelect.value;
+
+            appendMessage(text, 'user');
+            userInput.value        = '';
+            userInput.style.height = 'auto';
+
+            // Block if no Search API key (both models need it)
+            if (!searchApiKey) {
+                appendNoKeyMessage('search');
+                return;
+            }
+
+            // IndiModel also needs LLM key
+            if (model === 'indimodel' && !llmApiKey) {
+                appendNoKeyMessage('llm');
+                return;
+            }
+
+            // IndiModel — coming soon
+            if (model === 'indimodel') {
+                const lid = appendLoading();
+                setTimeout(() => {
+                    replaceLoading(lid,
+                        'IndiModel — Coming Very Soon!\n\n' +
+                        'This model is currently in active development. It will use your connected LLM API (' + llmApiProvider + ') ' +
+                        'together with the Search API (' + searchApiProvider + ') to perform deep claim analysis, ' +
+                        'cross-reference sources, detect manipulation patterns, and deliver verified trust verdicts.\n\n' +
+                        'Your API keys are saved and ready. Switch to Prototype to use the current pipeline while IndiModel is being built.'
+                    );
+                }, 700);
+                return;
+            }
+
+            // Prototype — current pipeline
+            const loadingId = appendLoading();
+            try {
+                const res = await fetch('/chat', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ text, inputType, searchApiKey, searchProvider: searchApiProvider, llmApiKey, llmProvider: llmApiProvider }),
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const data = await res.json();
+                replaceLoading(loadingId, data.response);
+            } catch (err) {
+                console.error(err);
+                replaceLoading(loadingId, 'Connection error. Please check your network and try again.', true);
+            }
+        });
+
+        // Textarea auto-resize
+        userInput.addEventListener('input', () => {
+            userInput.style.height = 'auto';
+            userInput.style.height = Math.min(userInput.scrollHeight, 160) + 'px';
+        });
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatForm.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        // ══════════════════════════════════════════
+        //  HELPERS
+        // ══════════════════════════════════════════
+        function getTime() {
+            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function appendMessage(text, type) {
+            const div = document.createElement('div');
+            div.classList.add('message', type + '-message');
+            div.innerHTML =
+                '<div class="message-meta">' +
+                    '<span class="msg-sender">' + (type === 'user' ? 'You' : 'FactCheck AI') + '</span>' +
+                    '<span class="msg-time">' + getTime() + '</span>' +
+                '</div>' +
+                '<div class="message-body"><p>' + escapeHtml(text) + '</p></div>';
+            chatMessages.appendChild(div);
+            scrollToBottom();
+            requestAnimationFrame(() => div.classList.add('visible'));
+        }
+
+        function appendNoKeyMessage(keyType) {
+            const isLLM = keyType === 'llm';
+            const div   = document.createElement('div');
+            div.classList.add('message', 'bot-message', 'no-key-message');
+            div.innerHTML =
+                '<div class="message-meta">' +
+                    '<span class="msg-sender">FactCheck AI</span>' +
+                    '<span class="msg-time">' + getTime() + '</span>' +
+                '</div>' +
+                '<div class="message-body">' +
+                    '<p>&#128273; <strong>No ' + (isLLM ? 'LLM' : 'Search') + ' API key detected.</strong> ' +
+                    (isLLM
+                        ? 'IndiModel requires a connected LLM API key to function.'
+                        : 'Verification requires live search access — connect a Search API key to continue.'
+                    ) + '</p>' +
+                    '<p style="margin-top:10px">Please enter your API key' + (isLLM ? 's' : '') + ' to continue.</p>' +
+                    '<button class="enter-key-btn reopen-modal-btn">' +
+                        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+                        'Enter API Key' + (isLLM ? 's' : '') +
+                    '</button>' +
+                '</div>';
+            chatMessages.appendChild(div);
+            scrollToBottom();
+            requestAnimationFrame(() => div.classList.add('visible'));
+            div.querySelector('.reopen-modal-btn').addEventListener('click', () => {
+                searchKeyInput.value = '';
+                llmKeyInput.value    = '';
+                clearAllModalStatus();
+                openModal();
+            });
+        }
+
+        function appendLoading() {
+            const id  = 'load-' + Date.now();
+            const div = document.createElement('div');
+            div.id    = id;
+            div.classList.add('message', 'bot-message', 'loading-message');
+            div.innerHTML =
+                '<div class="message-meta">' +
+                    '<span class="msg-sender">FactCheck AI</span>' +
+                    '<span class="msg-time">' + getTime() + '</span>' +
+                '</div>' +
+                '<div class="message-body">' +
+                    '<div class="typing-indicator"><span></span><span></span><span></span></div>' +
+                    '<span class="loading-text">Analyzing&#8230;</span>' +
+                '</div>';
+            chatMessages.appendChild(div);
+            requestAnimationFrame(() => div.classList.add('visible'));
+            scrollToBottom();
+            return id;
+        }
+
+        function replaceLoading(id, text, isError) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.classList.remove('loading-message');
+            if (isError) el.classList.add('error-message');
+            const paras = text.split('\n\n').map(p => '<p>' + escapeHtml(p.trim()) + '</p>').join('');
+            el.querySelector('.message-body').innerHTML = paras;
+            scrollToBottom();
+        }
+
+        function escapeHtml(s) {
+            return s
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function scrollToBottom() {
+            chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
+        }
+    });
+    </script>
+</body>
+</html>
